@@ -11,7 +11,8 @@ module mod_select
 contains
 
 
-   subroutine createAtomsToRotateStruct(bonds,pdihs,dihsOfInter,struct,size_s)
+   subroutine createAtomsToRotateStruct(atoms,bonds,pdihs,dihsOfInter,struct,&
+                                        size_s)
    !
    ! This subroutine creates the matrix struct and the vector size_s.
    ! Each line of the matrix contains the atomIDs that should be rotated
@@ -21,6 +22,7 @@ contains
    ! how many of the matrix elements in the respective row are non-zero
    ! sequence. I.e. size_s=struct(i,1:number_of_atomIDs_to_rotate).
    !
+   type(atom_t), dimension(:), intent(in) :: atoms
    type(bond_t), dimension(:), intent(in) :: bonds
    type(pdih_t), dimension(:), intent(in) :: pdihs
    integer(kind=int64), dimension(:), intent(in) :: dihsOfInter
@@ -36,7 +38,7 @@ contains
    flag=.True.
 
    do i=1,dihsOfInter_s
-      call getAtomsToRotate(bonds,pdihs,dihsOfInter(i),atomIDsToRotate)
+      call optimizeAtomIDsToRotateLen(atoms,bonds,pdihs,dihsOfInter(i),atomIDsToRotate)
       atomIDsToRotate_s=size(atomIDsToRotate,1)
       if (flag) then
          allocate(struct(1,atomIDsToRotate_s))
@@ -58,6 +60,45 @@ contains
    end do
 
    end subroutine createAtomsToRotateStruct
+
+
+   subroutine optimizeAtomIDsToRotateLen(atoms,bonds,pdihs,pdihID,atomIDsToRotate)
+   !
+   ! This is a helper routine. It helps createAtomsToRotateStruct to minimize
+   ! the number of atom which coordinates are rotated.
+   !
+   type(atom_t), dimension(:), intent(in) :: atoms
+   type(bond_t), dimension(:), intent(in) :: bonds
+   type(pdih_t), dimension(:), intent(in) :: pdihs
+   integer(kind=int64), intent(in) :: pdihID
+   integer(kind=int64), dimension(:), allocatable, intent(out) :: atomIDsToRotate
+   integer(kind=int64), dimension(:), allocatable :: tmp
+   integer(kind=int64) :: i,atoms_s
+   logical :: flag
+   
+   atoms_s=size(atoms,1)
+
+   call getAtomsToRotate(bonds,pdihs,pdihID,atomIDsToRotate)
+
+   if (size(atomIDsToRotate,1) .gt. atoms_s/2) then
+      allocate(tmp(1))
+      flag=.True.
+      do i=1,atoms_s
+         if (.not. checkIfElelemntIsInArray(atomIDsToRotate,i)) then
+            if (flag) then
+               tmp(1)=i
+               flag=.False.
+            else
+               call extend1DIntArray(tmp,i)
+            end if
+         end if
+      end do
+      deallocate(atomIDsToRotate)
+      allocate(atomIDsToRotate(size(tmp,1)))
+      call move_alloc(tmp,atomIDsToRotate)
+   end if
+
+   end subroutine optimizeAtomIDsToRotateLen
 
 
    subroutine getAtomsToRotate(bonds,pdihs,dihID,atomIDsToRotate)
