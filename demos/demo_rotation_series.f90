@@ -88,7 +88,7 @@ program demo_rotation_series
 
       call cpu_time(finish)
 
-      print *,"CPU time per segment rotation:",finish-start,"s"
+      print *,"CPU time per rotation of",size_s(i),"atoms:",finish-start,"s"
 
    end do
 
