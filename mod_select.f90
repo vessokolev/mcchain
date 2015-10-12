@@ -1,11 +1,87 @@
 module mod_select
 
+   ! Created by Veselin Kolev <vesso.kolev@gmail.com>
+   ! 20151011034812
+
    use mod_t
    use mod_array
 
    implicit none
 
 contains
+
+
+   subroutine createAtomsToRotateStruct(bonds,pdihs,dihsOfInter,struct,size_s)
+   !
+   ! This subroutine creates the matrix struct and the vector size_s.
+   ! Each line of the matrix contains the atomIDs that should be rotated
+   ! with respect to the axis of dihsOfInter(i) proper dihedral.
+   ! Because the matrix may contain zero-elements due to the different sizes
+   ! of the set of rotated atoms, the size_s vector contains an information
+   ! how many of the matrix elements in the respective row are non-zero
+   ! sequence. I.e. size_s=struct(i,1:number_of_atomIDs_to_rotate).
+   !
+   type(bond_t), dimension(:), intent(in) :: bonds
+   type(pdih_t), dimension(:), intent(in) :: pdihs
+   integer(kind=int64), dimension(:), intent(in) :: dihsOfInter
+   integer(kind=int64), dimension(:,:), allocatable, intent(out) :: struct
+   integer(kind=int64), dimension(:), allocatable, intent(out) :: size_s
+   integer(kind=int64), dimension(:), allocatable :: atomIDsToRotate
+   integer(kind=int64) :: i,j,dihsOfInter_s,atomIDsToRotate_s
+   integer(kind=int64), dimension(2) :: struct_s
+   logical :: flag
+
+   dihsOfInter_s=size(dihsOfInter,1)
+
+   flag=.True.
+
+   do i=1,dihsOfInter_s
+      call getAtomsToRotate(bonds,pdihs,dihsOfInter(i),atomIDsToRotate)
+      atomIDsToRotate_s=size(atomIDsToRotate,1)
+      if (flag) then
+         allocate(struct(1,atomIDsToRotate_s))
+         allocate(size_s(1))
+         struct(1,:)=atomIDsToRotate(:)
+         size_s(1)=atomIDsToRotate_s
+         flag=.False.
+      else
+         struct_s=shape(struct)
+         if (atomIDsToRotate_s .gt. struct_s(2)) then
+            do j=1,atomIDsToRotate_s-struct_s(2)
+               call extendArrayAddColumn(struct)
+            end do
+         end if
+         call extendArrayAddRow(struct)
+         struct(i,1:atomIDsToRotate_s)=atomIDsToRotate(:)
+         call extend1DIntArray(size_s,atomIDsToRotate_s)
+      end if
+   end do
+
+   end subroutine createAtomsToRotateStruct
+
+
+   subroutine getAtomsToRotate(bonds,pdihs,dihID,atomIDsToRotate)
+   !
+   ! It is an enhancement of getAtomIDsToRotate subroutine.
+   !
+   type(bond_t), dimension(:), intent(in) :: bonds
+   type(pdih_t), dimension(:), intent(in) :: pdihs
+   integer(kind=int64) :: dihID
+   integer(kind=int64), dimension(:), allocatable, intent(out) :: &
+   atomIDsToRotate
+   integer(kind=int64), dimension(:), allocatable :: excludes
+
+   allocate(excludes(1))
+
+   excludes(1)=pdihs(dihID)%member_id(2)
+
+   call getAtomIDsToRotate(bonds,pdihs(dihID)%member_id(3),&
+   excludes,atomIDsToRotate)
+
+   deallocate(excludes)
+
+   end subroutine getAtomsToRotate
+
 
    subroutine getAtomIDsToRotate(bonds,atomID,excludes,atomIDsToRotate)
    type(bond_t), dimension(:), intent(in) :: bonds
