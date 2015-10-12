@@ -71,7 +71,7 @@ program demo_rotation_series
    ! atom IDs corresponding to the roration over one dihedral axis. See the
    ! comment in mod_select.f90.
    !
-   call createAtomsToRotateStruct(bonds,pdihs,dihsOfInter,struct,size_s)
+   call createAtomsToRotateStruct(atoms,bonds,pdihs,dihsOfInter,struct,size_s)
 
    do i=1,size(dihsOfInter,1)
 
