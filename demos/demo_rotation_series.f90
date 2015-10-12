@@ -1,11 +1,14 @@
 program demo_rotation_series
 
-   use mod_t
-   use mod_pdb
-   use mod_rot
-   use mod_input
-   use mod_select
-   use mod_array
+   use mod_t       ! Defines the base types
+   use mod_pdb     ! Reads and write PDB files
+   use mod_rot     ! Rotates atomic coordinates
+   use mod_input   ! Reads the input files and creates 
+                   ! the data structures into the memory.
+   use mod_select  ! Selects the atomic coordinates that
+                   ! need to be rotated.
+   use mod_array   ! Helper module that assists the operations
+                   ! with arrays
 
    implicit none
 
@@ -15,18 +18,13 @@ program demo_rotation_series
    real(kind=real64), dimension(:,:), allocatable :: eps_M
    real(kind=real64), dimension(:,:), allocatable :: sigma_M
 
-   real(kind=real64) :: phi,r
-   integer(kind=int64), dimension(:,:), allocatable :: bonds_f
-   integer(kind=int64), dimension(:), allocatable :: atomIDsToRotate,size_s
-   integer(kind=int64), dimension(:,:), allocatable :: selection,struct
-   integer(kind=int64), dimension(:), allocatable :: pdihssel
+   integer(kind=int64), dimension(:), allocatable :: size_s
+   integer(kind=int64), dimension(:,:), allocatable :: struct
    integer(kind=int64), dimension(:), allocatable ::  dihsOfInter
    integer(kind=int16), dimension(1) :: seed=(/3232/)
-   real(kind=real64), dimension(3) :: tmp
-   integer(kind=int64) :: i,selectedDihedralID
-   type(pdih_t) :: selectedDihedral
+   integer(kind=int64) :: i
    type(file_t) :: files
-   real(kind=real64) :: start, finish
+   real(kind=real64) :: r, start, finish
 
    !
    ! The files bellow are created by running create_input.py
@@ -100,8 +98,5 @@ program demo_rotation_series
    ! Writes the transformed coordinates in PDB format.
    !
    call saveAtomsOnPDB(atoms,files%pdbinp,files%pdbout)
-
-
-contains
 
 end program demo_rotation_series
