@@ -101,7 +101,7 @@ contains
    type(pdih_t), dimension(:), intent(inout) :: pdihs
    integer(kind=int64), intent(in) :: pdihID
    real(kind=real64), dimension(3) :: m,n,ri,rj,rk,rl
-   real(kind=real64), dimension(3) :: rji,rjk,rkj,rkl
+   real(kind=real64), dimension(3) :: rji,rjk,rkl
    real(kind=real64) :: dummy,cos_
    integer(kind=int64) :: di,dj,dk,dl
 
@@ -117,11 +117,10 @@ contains
 
    rji=rj-ri
    rjk=rj-rk
-   rkj=rk-rj
    rkl=rk-rl
 
    m=vectorCrossProduct(rji,rjk)
-   n=vectorCrossProduct(rkj,rkl)
+   n=vectorCrossProduct(-rjk,rkl)
    dummy=norm2(m)*norm2(n)
 
    cos_=dot_product(m,n)/dummy
