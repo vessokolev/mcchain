@@ -1,7 +1,11 @@
 module mod_input
-
+   !
+   ! Create by Veselin Kolev <vesso.kolev@gmail.com>
+   ! 20151008233108
+   !
    use mod_t
    use mod_array
+   use mod_dihedral
 
 contains
 
@@ -19,7 +23,10 @@ contains
    call readPropDihedrals(files,pdihs)
    call updateAtomAddBondsArray(atoms,bonds)
 
-   call calculateDihedralAnglesEnergies(atoms,pdihs)
+   call calculateDihedralAngles(atoms,pdihs)
+   call calculateTorsionEnergies(pdihs)
+
+!   call calculateDihedralAnglesEnergies(atoms,pdihs)
    call putAtomsInEpsGroups(atoms,eps_M)
    call putAtomsInSigmaGroups(atoms,sigma_M)
 
@@ -138,97 +145,6 @@ contains
    end subroutine updateAtomAddBondsArray
 
 
-!   subroutine extend1DIntArray(array,newElement)
-!   integer(kind=int64), dimension(:), allocatable, intent(inout) :: array
-!   integer(kind=int64), intent(in) :: newElement
-!   integer(kind=int64), dimension(:), allocatable :: temp
-!   integer(kind=int64), dimension(1) :: array_s
-!   integer(kind=int64) :: i
-
-!   array_s=shape(array)
-
-!   call move_alloc(array,temp)
-
-!   array_s(1)=array_s(1)+1
-
-!   allocate(array(array_s(1)))
-
-!   array(1:array_s(1)-1)=temp(:)
-
-!   deallocate(temp)
-
-!   array(array_s(1))=newElement
-
-!   end subroutine extend1DIntArray
-
-
-   function calculateDihedralAngle(indx,atoms,pdihs) result(angle)
-   integer(kind=int64), intent(in) :: indx
-   type(atom_t), dimension(:), intent(in) :: atoms
-   type(pdih_t), dimension(:), intent(in) :: pdihs
-   real(kind=real64), dimension(3) :: m,n,ri,rj,rk,rl
-   real(kind=real64), dimension(3) :: rji,rjk,rkj,rkl
-   real(kind=real64) :: angle,dummy,sin_,cos_
-   integer(kind=int64) :: di,dj,dk,dl
-
-   di=pdihs(indx)%member_id(1)
-   dj=pdihs(indx)%member_id(2)
-   dk=pdihs(indx)%member_id(3)
-   dl=pdihs(indx)%member_id(4)
-
-   ri=(/atoms(di)%x,atoms(di)%y,atoms(di)%z/)
-   rj=(/atoms(dj)%x,atoms(dj)%y,atoms(dj)%z/)
-   rk=(/atoms(dk)%x,atoms(dk)%y,atoms(dk)%z/)
-   rl=(/atoms(dl)%x,atoms(dl)%y,atoms(dl)%z/)
-
-   rji=rj-ri
-   rjk=rj-rk
-   rkj=rk-rj
-   rkl=rk-rl
-
-   m=vectorCrossProduct(rji,rjk)
-   n=vectorCrossProduct(rkj,rkl)
-   dummy=norm2(m)*norm2(n)
-
-   cos_=dot_product(m,n)/dummy
-   sin_=norm2(vectorCrossProduct(m,n))/dummy
-
-   angle=acos(cos_)
-
-   end function calculateDihedralAngle
-
-
-!   function vectorCrossProduct(vect1,vect2) result(crossprod)
-!   real(kind=real64), dimension(3), intent(in) :: vect1,vect2
-!   real(kind=real64), dimension(3) :: crossprod
-
-!   crossprod(1)=vect1(2)*vect2(3)-vect1(3)*vect2(2)
-!   crossprod(2)=vect1(3)*vect2(1)-vect1(1)*vect2(3)
-!   crossprod(3)=vect1(1)*vect2(2)-vect1(2)*vect2(1)
-
-!   end function vectorCrossProduct
-
-
-   subroutine calculateDihedralAnglesEnergies(atoms,pdihs)
-   type(atom_t), dimension(:), intent(in) :: atoms
-   type(pdih_t), dimension(:), intent(inout) :: pdihs
-   integer(kind=int64) :: i,j
-   real(kind=real64) :: energy
-
-   do i=1,size(pdihs,1)
-      pdihs(i)%currentAngle=calculateDihedralAngle(i,atoms,pdihs)
-      energy=0.0_real64
-      do j=1,size(pdihs(i)%params,1)
-         energy=energy+pdihs(i)%params(j)%kd*(1.0_real64+&
-                cos(pdihs(i)%params(j)%mult*pdihs(i)%currentAngle-&
-                    pdihs(i)%params(j)%phi0))
-      end do
-      pdihs(i)%energy=energy
-   end do
-
-   end subroutine calculateDihedralAnglesEnergies
-
-
    subroutine putAtomsInEpsGroups(atoms,eps_M)
    type(atom_t), dimension(:), intent(inout) :: atoms
    real(kind=real64), dimension(:,:), allocatable, intent(out) :: eps_M
@@ -280,98 +196,6 @@ contains
    call constructSigmaMatrix(u_sgm,sigma_M)
 
    end subroutine putAtomsInSigmaGroups
-
-
-   subroutine findUniqueElements1Darray(array)
-   real(kind=real64), dimension(:), allocatable, intent(inout) :: array
-   real(kind=real64), dimension(:), allocatable :: tmp
-   integer(kind=int64),dimension(1) :: array_s
-   integer(kind=int64) :: i,counter,dummy_i
-   real(kind=real64) :: dummy
-
-   array_s=shape(array)
-   array_s=array_s-1
-
-   dummy_i=1
-   do while (dummy_i .gt. 0)
-      dummy_i=0
-      do i=1,array_s(1)
-         if (array(i)>array(i+1)) then
-            dummy=array(i+1)
-            array(i+1)=array(i)
-            array(i)=dummy
-            dummy_i=dummy_i+1
-         end if
-      end do
-   end do
-
-   allocate(tmp(1))
-   tmp(1)=array(1)
-
-   do i=1,array_s(1)
-      if (array(i+1) .ne. array(i)) then
-         call extend1DFloatArray(tmp,array(i+1))
-      end if
-
-   end do
-
-   deallocate(array)
-
-   call move_alloc(tmp,array)
-
-   end subroutine findUniqueElements1Darray
-
-
-   subroutine extend1DFloatArray(array,newElement)
-   real(kind=real64), dimension(:), allocatable, intent(inout) :: array
-   real(kind=real64), intent(in) :: newElement
-   real(kind=real64), dimension(:), allocatable :: temp
-   integer(kind=int64), dimension(1) :: array_s
-   integer(kind=int64) :: i
-
-   array_s=shape(array)
-
-   call move_alloc(array,temp)
-
-   array_s(1)=array_s(1)+1
-
-   allocate(array(array_s(1)))
-
-   array(1:array_s(1)-1)=temp(:)
-
-   deallocate(temp)
-
-   array(array_s(1))=newElement
-
-   end subroutine extend1DFloatArray
-
-
-   function searchIn1DFloatArray(array,numToSearchFor) result(found)
-   real(kind=real64), dimension(:), intent(in) :: array
-   real(kind=real64), intent(in) :: numToSearchFor
-   logical :: flag
-   integer(kind=int64) :: found,dummy
-   integer(kind=int64), dimension(1) :: array_s
-
-   array_s=shape(array)
-   array_s(1)=array_s(1)+1
-
-   flag=.True.
-
-   dummy=1
-
-   do while (flag)
-      if (array(dummy) .eq. numToSearchFor) then
-         flag=.False.
-         found=dummy
-      end if
-      dummy=dummy+1
-      if (dummy .eq. array_s(1)) then
-         flag=.False.
-      end if
-   end do
-
-   end function searchIn1DFloatArray
 
 
    subroutine constructEpsMatrix(u_eps,eps_M)

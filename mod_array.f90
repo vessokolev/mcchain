@@ -156,4 +156,94 @@ contains
    end subroutine unique1DArray
 
 
+   function searchIn1DFloatArray(array,numToSearchFor) result(found)
+   real(kind=real64), dimension(:), intent(in) :: array
+   real(kind=real64), intent(in) :: numToSearchFor
+   logical :: flag
+   integer(kind=int64) :: found,dummy,array_s
+
+   array_s=size(array,1)
+   array_s=array_s+1
+
+   flag=.True.
+
+   dummy=1
+
+   do while (flag)
+      if (array(dummy) .eq. numToSearchFor) then
+         flag=.False.
+         found=dummy
+      end if
+      dummy=dummy+1
+      if (dummy .eq. array_s) then
+         flag=.False.
+      end if
+   end do
+
+   end function searchIn1DFloatArray
+
+
+   subroutine extend1DFloatArray(array,newElement)
+   real(kind=real64), dimension(:), allocatable, intent(inout) :: array
+   real(kind=real64), intent(in) :: newElement
+   real(kind=real64), dimension(:), allocatable :: temp
+   integer(kind=int64) :: i,array_s
+
+   array_s=size(array,1)
+
+   call move_alloc(array,temp)
+
+   array_s=array_s+1
+
+   allocate(array(array_s))
+
+   array(1:array_s-1)=temp(:)
+
+   deallocate(temp)
+
+   array(array_s)=newElement
+
+   end subroutine extend1DFloatArray
+
+
+   subroutine findUniqueElements1Darray(array)
+   real(kind=real64), dimension(:), allocatable, intent(inout) :: array
+   real(kind=real64), dimension(:), allocatable :: tmp
+   integer(kind=int64),dimension(1) :: array_s
+   integer(kind=int64) :: i,counter,dummy_i
+   real(kind=real64) :: dummy
+
+   array_s=shape(array)
+   array_s=array_s-1
+
+   dummy_i=1
+   do while (dummy_i .gt. 0)
+      dummy_i=0
+      do i=1,array_s(1)
+         if (array(i)>array(i+1)) then
+            dummy=array(i+1)
+            array(i+1)=array(i)
+            array(i)=dummy
+            dummy_i=dummy_i+1
+         end if
+      end do
+   end do
+
+   allocate(tmp(1))
+   tmp(1)=array(1)
+
+   do i=1,array_s(1)
+      if (array(i+1) .ne. array(i)) then
+         call extend1DFloatArray(tmp,array(i+1))
+      end if
+
+   end do
+
+   deallocate(array)
+
+   call move_alloc(tmp,array)
+
+   end subroutine findUniqueElements1Darray
+
+
 end module mod_array
