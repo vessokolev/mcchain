@@ -11,6 +11,7 @@ program demo_rotation_series
                    ! with arrays
 
    use mod_dihedral
+   use mod_energy
 
    implicit none
 
@@ -20,9 +21,11 @@ program demo_rotation_series
    real(kind=real64), dimension(:,:), allocatable :: eps_M
    real(kind=real64), dimension(:,:), allocatable :: sigma_M
 
-   integer(kind=int64), dimension(:), allocatable :: size_s
-   integer(kind=int64), dimension(:,:), allocatable :: struct
-   integer(kind=int64), dimension(:), allocatable ::  dihsOfInter
+   integer(kind=int64), dimension(:), allocatable :: size_s,excludes
+   integer(kind=int64), dimension(:,:), allocatable :: struct,connections,&
+   atomsInPath,nonBondedExclusions
+   integer(kind=int64), dimension(:), allocatable ::  dihsOfInter,numconns,&
+   nonBondedExcl
    integer(kind=int16), dimension(1) :: seed=(/3232/)
    integer(kind=int64) :: i
    type(file_t) :: files
@@ -54,20 +57,25 @@ program demo_rotation_series
    !
    call readInput(files,atoms,bonds,pdihs,eps_M,sigma_M)
 
-   allocate(pdihs_tmp(size(pdihs,1)))
+   eps_M(:,:)=eps_M(:,:)/4.0_real64
 
-   pdihs_tmp(:)=pdihs(:)
+   call createAtomsToRotateStruct(atoms,bonds,pdihs,dihsOfInter,struct,size_s)
 
-   pdihs_tmp(:)%energy=0.0_real64
-   pdihs_tmp(:)%currentAngle=0.0_real64
+   allocate(dihsOfInter(19))
 
-   call calculateDihedralAngles(atoms,pdihs_tmp)
-   call calculateTorsionEnergies(pdihs_tmp)
+   dihsOfInter=(/21,44,69,94,119,144,169,194,219,244,269,294,319,344,369,394,419,444,469/)
 
-   do i=1,size(pdihs,1)
-      print *,pdihs(i)%currentAngle,pdihs(i)%energy,&
-              pdihs_tmp(i)%currentAngle,pdihs_tmp(i)%energy
-   end do
+   call getNonBondedExcl(atoms,bonds,nonBondedExclusions)
 
+
+   deallocate(size_s)
+   deallocate(struct)
+   deallocate(dihsOfInter)
+   deallocate(nonBondedExclusions)
+   deallocate(eps_M)
+   deallocate(sigma_M)
+   deallocate(atoms)
+   deallocate(bonds)
+   deallocate(pdihs)
 
 end program demo_rotation_series
