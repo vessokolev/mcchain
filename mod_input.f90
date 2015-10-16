@@ -19,14 +19,22 @@ contains
    real(kind=real64), dimension(:,:), allocatable :: sigma_M
 
    call readAtoms(files,atoms)
+
+   atoms_s=size(atoms,1)
+
    call readBonds(files,bonds)
+
+   bonds_s=size(bonds,1)
+
    call readPropDihedrals(files,pdihs)
+
+   pdihs_s=size(pdihs,1)
+
    call updateAtomAddBondsArray(atoms,bonds)
 
    call calculateDihedralAngles(atoms,pdihs)
    call calculateTorsionEnergies(pdihs)
 
-!   call calculateDihedralAnglesEnergies(atoms,pdihs)
    call putAtomsInEpsGroups(atoms,eps_M)
    call putAtomsInSigmaGroups(atoms,sigma_M)
 
@@ -243,6 +251,39 @@ contains
    end do
 
    end subroutine constructSigmaMatrix
+
+
+   subroutine createDistanceMatrix(atoms,distM)
+   !
+   ! VERY IMPORTANT! To save memory we don't use two dimensional distance
+   ! matrix. Instead an one-dimensional representation of the upper triangular
+   ! matrix (excluding its diagonal elements) is implemented. The connection
+   ! between the index variable of the 1D-array (q) and the indexes of the
+   ! matrix
+   ! elements (i and j) is:
+   !
+   ! q=N*(i-1)-i*(i+1)/2+j
+   !
+   ! where N is the size of the distance matrix (the number of its rows, or
+   ! columns, or diagonal elements) - equal to the total number of the atoms.
+   !
+   type(atom_t), dimension(:), intent(in) :: atoms
+   real(kind=real64), dimension(:), allocatable, intent(out) :: distM
+   integer(kind=int64) :: i,j,counter
+
+   allocate(distM(atoms_s*(atoms_s-1)/2))
+
+   counter=1
+
+   do i=1,atoms_s-1
+      do j=i+1,atoms_s
+            distM(counter)=norm2((/atoms(i)%x,atoms(i)%y,atoms(i)%z/)-&
+                                 (/atoms(j)%x,atoms(j)%y,atoms(j)%z/))
+         counter=counter+1
+      end do
+   end do
+
+   end subroutine createDistanceMatrix
 
 
 end module mod_input

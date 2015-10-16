@@ -5,6 +5,7 @@ module mod_energy
    !
    use mod_t
    use mod_array
+   use mod_distance
 
    implicit none
 
@@ -78,12 +79,14 @@ contains
    end subroutine selectAtomConnections
 
 
-   subroutine getTotvdWContribToEnergy(atoms,connections,numconns,eps_M,sigma_M,energy)
+   subroutine getTotvdWContribToEnergy(atoms,connections,numconns,eps_M,&
+                                       sigma_M,distM,energy)
    type(atom_t), dimension(:), intent(in) :: atoms
    integer(kind=int64), dimension(:,:), intent(in) :: connections
    integer(kind=int64), dimension(:), intent(in) :: numconns
    real(kind=real64), dimension(:,:), intent(in) :: eps_M
    real(kind=real64), dimension(:,:), intent(in) :: sigma_M
+   real(kind=real64), dimension(:), intent(in) :: distM
    real(kind=real64), intent(out) :: energy
    integer(kind=int64) :: i,j,atoms_s
 
@@ -93,28 +96,52 @@ contains
 
    do i=1,atoms_s-1
       do j=i+1,atoms_s
-         energy=energy+getvdWPairEnergy(atoms,i,j,eps_M,sigma_M)
+         energy=energy+getvdWPairEnergy(atoms,eps_M,sigma_M,distM,i,j)
       end do
    end do
 
    end subroutine getTotvdWContribToEnergy
 
 
-   function getvdWPairEnergy(atoms,i,j,eps_M,sigma_M) result(pairE)
+   function getvdWPairEnergy(atoms,eps_M,sigma_M,distM,i,j) result(pairvdW)
+   !
+   ! Calculates the vdW interacton energy between two atoms (given by their
+   ! indexes i and j).
+   !
    type(atom_t), dimension(:), intent(in) :: atoms
    integer(kind=int64), intent(in) :: i
    integer(kind=int64), intent(in) :: j
    real(kind=real64), dimension(:,:), intent(in) :: eps_M
    real(kind=real64), dimension(:,:), intent(in) :: sigma_M
-   real(kind=real64) :: pairE
+   real(kind=real64), dimension(:), intent(in) :: distM
+   real(kind=real64) :: pairvdW
 
-   pairE=norm2((/atoms(i)%x,atoms(i)%y,atoms(i)%z/)-&
-               (/atoms(j)%x,atoms(j)%y,atoms(j)%z/))
-
-   pairE=(sigma_M(atoms(i)%sigma_g,atoms(j)%sigma_g)/pairE)**6.0_real64
-   pairE=eps_M(atoms(i)%sigma_g,atoms(j)%sigma_g)*pairE*(pairE-1)
+   pairvdW=distM(get1DdimMIndex(i,j))
+   pairvdW=(sigma_M(atoms(i)%sigma_g,atoms(j)%sigma_g)/pairvdW)**6.0_real64
+   pairvdW=eps_M(atoms(i)%eps_g,atoms(j)%eps_g)*pairvdW*(pairvdW-1)
 
    end function getvdWPairEnergy
+
+
+   function getElPairEnergy(atoms,distM,i,j) result(pairEl)
+   !
+   ! In order to make the computation of the energy for a set of atom a fast
+   ! process the electrostatic energy between two atoms is taken as q1*q2/r and
+   ! then in the upper level of the execution code it is multiplied by the
+   ! constant f/eps, where f=C*C/4/pi/eps_0, and eps is the dielectric
+   ! permitivity of the medium. Take this into account if you call this function
+   ! directly in your source code.
+   !
+   type(atom_t), dimension(:), intent(in) :: atoms
+   integer(kind=int64), intent(in) :: i
+   integer(kind=int64), intent(in) :: j
+   real(kind=real64), dimension(:), intent(in) :: distM
+   real(kind=real64) :: pairEl
+
+   pairEl=distM(get1DdimMIndex(i,j))
+   pairEl=atoms(i)%charge*atoms(j)%charge/pairEl
+
+   end function getElPairEnergy
 
 
 end module mod_energy

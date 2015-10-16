@@ -212,6 +212,7 @@ contains
                   atomsInPath(atomsInPath_s(1),atomsInPath_s(2))=0
                end if
             end if
+            deallocate(neighs)
             deallocate(excl)
          end do
          flag=(sum(atomsInPath(:,atomsInPath_s(2))) .ne. 0)
@@ -261,6 +262,95 @@ contains
 
    end subroutine getNeighs
 
+
+   subroutine getNonBondedExclPerAtom(atoms,bonds,atomID,nonBondedExcl)
+   !
+   ! By definition, the nonbonded forces are only applied to atom pairs
+   ! separated by at least three bonds. The goal of this routine is to select
+   ! (per each atom in the system) the list of atoms that should be excluded
+   ! from the non-bonded interaction calculations. Here atomID supplies the ID
+   ! of the atom which list of excluded neighbors is to be selected.
+   !
+   type(atom_t), dimension(:), intent(in) :: atoms
+   type(bond_t), dimension(:), intent(in) :: bonds
+   integer(kind=int64), intent(in) :: atomID
+   integer(kind=int64), dimension(:), allocatable, intent(out) :: nonBondedExcl
+   integer(kind=int64), dimension(:), allocatable :: excludes
+   integer(kind=int64), dimension(:,:), allocatable :: atomsInPath
+   integer(kind=int64) :: i
+   integer(kind=int8) :: j
+   logical :: flag
+
+   flag=.True.
+
+   allocate(nonBondedExcl(1))
+   allocate(excludes(1))
+ 
+   excludes(1)=0
+
+   call getTreePaths(bonds,atomID,excludes,atomsInPath)
+
+   do i=1,size(atomsInPath,1)
+      do j=2,4
+         if (flag) then
+            if (atomsInPath(i,j) .gt. 0) then
+               nonBondedExcl(1)=atomsInPath(i,j)
+               flag=.False.
+            end if
+         else
+            if (atomsInPath(i,j) .gt. 0) then
+               if (.not. checkIfElelemntIsInArray(nonBondedExcl,atomsInPath(i,j))) then
+                  call extend1DIntArray(nonBondedExcl,atomsInPath(i,j))
+               end if
+            end if
+         end if
+      end do
+   end do
+
+   deallocate(atomsInPath)
+   deallocate(excludes)
+
+   end subroutine getNonBondedExclPerAtom
+
+
+   subroutine getNonBondedExcl(atoms,bonds,nonBondedExclusions)
+   !
+   ! It is generalization of getNonBondedExclPerAtom for all atoms in the
+   ! system.
+   !
+   type(atom_t), dimension(:), intent(in) :: atoms
+   type(bond_t), dimension(:), intent(in) :: bonds
+   integer(kind=int64), dimension(:,:), allocatable, intent(out) :: &
+   nonBondedExclusions
+   integer(kind=int64), dimension(:), allocatable :: nonBondedExcl
+   integer(kind=int64) :: i,j,nonBondedExcl_s,nonBondedExclusions_s
+   logical :: flag
+
+   flag=.True.
+
+   do i=1,size(atoms,1)
+      call getNonBondedExclPerAtom(atoms,bonds,i,nonBondedExcl)
+      nonBondedExcl_s=size(nonBondedExcl,1)
+      if (flag) then
+         allocate(nonBondedExclusions(1,nonBondedExcl_s))
+         nonBondedExclusions_s=nonBondedExcl_s
+         flag=.False.
+      else
+         call extendArrayAddRow(nonBondedExclusions)
+         if (nonBondedExcl_s .gt. nonBondedExclusions_s) then
+            do j=1,nonBondedExcl_s-nonBondedExclusions_s
+               call extendArrayAddColumn(nonBondedExclusions)
+               nonBondedExclusions_s=nonBondedExclusions_s+1
+            end do
+            nonBondedExclusions(i,:)=nonBondedExcl(:)
+         else
+            nonBondedExclusions(i,1:nonBondedExcl_s)=nonBondedExcl(:)
+         end if
+      end if
+      deallocate(nonBondedExcl)
+   end do
+
+   end subroutine getNonBondedExcl
 
 
 end module mod_select

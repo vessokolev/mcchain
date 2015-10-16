@@ -101,6 +101,17 @@ module mod_t
    real(kind=real64), parameter :: &
    pix3div2=4.712388980384689674_real64
 
+   !
+   ! The following parameters should be defined:
+   !
+   ! - in the module mod_input.f90 (see subroutine readInput there):
+   ! atoms_s=size(atoms,1)
+   ! bonds_s=size(bonds,1)
+   ! pdihs_s=size(pdihs,1)
+   !
+   integer(kind=int64) :: atoms_s,bonds_s,pdihs_s
+
+
 contains
 
 end module mod_t
