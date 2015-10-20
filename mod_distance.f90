@@ -75,7 +75,7 @@ contains
 
    subroutine create1DdistM(atoms,distM1D)
    !
-   ! This subroutine create a distance matrix as an 1-dimensional array to save
+   ! This subroutine creates a distance matrix as an 1-dimensional array to save
    ! a lot of memory. Note that instead of calling function get1DdimMIndex(i,j)
    ! it is possible only during the creation of the matrix and assigning values
    ! to the elements, to use increment of integer variable (see how the variable
