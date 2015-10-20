@@ -73,11 +73,9 @@ contains
    integer(kind=int64), intent(in) :: pdihID
    integer(kind=int64), dimension(:), allocatable, intent(out) :: atomIDsToRotate
    integer(kind=int64), dimension(:), allocatable :: tmp
-   integer(kind=int64) :: i,atoms_s
+   integer(kind=int64) :: i
    logical :: flag
    
-   atoms_s=size(atoms,1)
-
    call getAtomsToRotate(bonds,pdihs,pdihID,atomIDsToRotate)
 
    if (size(atomIDsToRotate,1) .gt. atoms_s/2) then

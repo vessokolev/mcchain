@@ -1,12 +1,13 @@
 module mod_distance
-
+   ! Created by Veselin Kolev <vesso.kolev@gmail.com>
+   ! 20151020031723
    use mod_t
 
    implicit none
    !
-   ! Note that atoms_s (the number of the atoms in the system) is defined in
-   ! mod_t.f90 and its value is assigned in mod_input.f90 (see subroutine
-   ! readInput there).
+   ! Note that atoms_s (the number of the atoms in the system) is defined as a
+   ! global constant in the body of module mod_t.f90 and its value is being 
+   ! assigned in mod_input.f90 (see subroutine readInput there).
    !
 
 
@@ -14,11 +15,9 @@ contains
 
    subroutine updateDistanceMatrix(atoms,distM,atomIDs)
    !
-   ! If the position of one atom got changed one should update the row in the
-   ! distance matrix that corresonds to the neighbours of the atom. Because here
-   ! the diagonalization matrix is represented as 1D array, (see the subroutine
-   ! createDistanceMatrix) the corresponding array elements should be found and
-   ! changed.
+   ! This subroutine calls updateDistanceMatrix1Atom for each of the atom IDs
+   ! supplied by the array atomIDs. Its role is to update the distance matrix at
+   ! complex atomic coordinate changes (like rotation over axis).
    !
    type(atom_t), dimension(:), intent(in) :: atoms
    real(kind=real64), dimension(:), intent(inout) :: distM
@@ -32,25 +31,40 @@ contains
    end subroutine updateDistanceMatrix
 
 
-   subroutine updateDistanceMatrix1(atoms,distM,atomID)
+   subroutine updateDistanceMatrix1Atom(atoms,distM1D,atomID)
    !
-   ! At each step of the execution subroutine updateDistanceMatrix calls this
-   ! subroutine to change the distance matrix 1D-array representation.
+   ! Updates the distance matrix with respect to the changes of the coordinates
+   ! of the atom with atomID. This is an operation that reqiures changing of
+   ! some of the elements of the distance matrix. Note that here we use 1D
+   ! representation of the distance matrix.
    !
    type(atom_t), dimension(:), intent(in) :: atoms
-   real(kind=real64), dimension(:), intent(inout) :: distM
+   real(kind=real64), dimension(:), intent(inout) :: distM1D
    integer(kind=int64), intent(in) :: atomID
-   integer(kind=int64) :: i
+   integer(kind=int64) :: j,k
 
-   do i=atomID+1,atoms_s
-      distM(get1DdimMIndex(atomID,i))=norm2((/atoms(i)%x,atoms(i)%y,atoms(i)%z/)-&
-      (/atoms(atomID)%x,atoms(atomID)%y,atoms(atomID)%z/))
+   do j=1,atomID
+      if (j .eq. atomID) then
+         do k=atomID+1,atoms_s
+            distM1D(get1DdimMIndex(atomID,k))=&
+            norm2((/atoms(atomID)%x,atoms(atomID)%y,atoms(atomID)%z/)-&
+                  (/atoms(k)%x,atoms(k)%y,atoms(k)%z/))
+         end do
+      else
+         distM1D(get1DdimMIndex(j,atomID))=&
+         norm2((/atoms(j)%x,atoms(j)%y,atoms(j)%z/)-&
+               (/atoms(atomID)%x,atoms(atomID)%y,atoms(atomID)%z/))
+      end if
    end do
 
-   end subroutine updateDistanceMatrix1
+   end subroutine updateDistanceMatrix1Atom
 
 
    function get1DdimMIndex(i,j) result(indx)
+   !
+   ! This function supplies the index of a one-dimensional array that
+   ! corresponds to the element of a square matrix located above its diagonal.
+   !
    integer(kind=int64), intent(in) :: i,j
    integer(kind=int64) :: indx
 
@@ -58,5 +72,32 @@ contains
 
    end function get1DdimMIndex
 
+
+   subroutine create1DdistM(atoms,distM1D)
+   !
+   ! This subroutine create a distance matrix as an 1-dimensional array to save
+   ! a lot of memory. Note that instead of calling function get1DdimMIndex(i,j)
+   ! it is possible only during the creation of the matrix and assigning values
+   ! to the elements, to use increment of integer variable (see how the variable
+   ! counter is used bellow).
+   !
+   type(atom_t), dimension(:), intent(in) :: atoms
+   integer(kind=int64), dimension(:), allocatable, intent(inout) :: distM1D
+   integer(kind=int64) :: i,j,counter
+
+   allocate(distM1D(atoms_s*(atoms_s-1)/2))
+
+   counter=1
+
+   do i=1,atoms_s-1
+      do j=i+1,atoms_s
+         distM1D(counter)=&
+         norm2((/atoms(i)%x,atoms(i)%y,atoms(i)%z/)-&
+               (/atoms(j)%x,atoms(j)%y,atoms(j)%z/))
+         counter=counter+1
+      end do
+   end do
+
+   end subroutine create1DDistM
 
 end module mod_distance

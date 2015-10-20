@@ -88,9 +88,7 @@ contains
    real(kind=real64), dimension(:,:), intent(in) :: sigma_M
    real(kind=real64), dimension(:), intent(in) :: distM
    real(kind=real64), intent(out) :: energy
-   integer(kind=int64) :: i,j,atoms_s
-
-   atoms_s=size(atoms,1)
+   integer(kind=int64) :: i,j
 
    energy=0.0_real64
 
@@ -142,6 +140,87 @@ contains
    pairEl=atoms(i)%charge*atoms(j)%charge/pairEl
 
    end function getElPairEnergy
+
+
+   subroutine calculateTorsionEnergy(pdihs,pdihID)
+   !
+   ! Calculates the torsion energy corresponding to a certain dihedral angle
+   ! (selected by using its ID - pdihID). Note that the torsion energy is
+   ! defined as sum(i=1,i=N) kd*[1+cos(mult*phi-phi0)]. Here kd, mult, and
+   ! phi0 are supplied by the force field while phi is supplied by the
+   ! subroutine calculateTorsionEnergy.
+   !
+   type(pdih_t), dimension(:), intent(inout) :: pdihs
+   integer(kind=int64), intent(in) :: pdihID
+   integer(kind=int64) :: i
+
+   pdihs(pdihID)%energy=0.0_real64
+
+   do i=1,size(pdihs(pdihID)%params,1)
+      pdihs(pdihID)%energy=pdihs(pdihID)%energy+&
+      pdihs(pdihID)%params(i)%kd*(1.0_real64+&
+      cos(pdihs(pdihID)%params(i)%mult*pdihs(pdihID)%currentAngle-&
+      pdihs(pdihID)%params(i)%phi0))
+   end do
+
+   end subroutine calculateTorsionEnergy
+
+
+   subroutine calculateTorsionEnergies(pdihs)
+   !
+   ! Calculates the torsion energy corresponding to each and every of the
+   ! dihedral angles defined in the input files. All dihedral angles have to
+   ! be calculated!!! See subroutine calculateDihedralAngles.
+   !
+   type(pdih_t), dimension(:), intent(inout) :: pdihs
+   integer(kind=int64) :: i
+
+   do i=1,pdihs_s
+      call calculateTorsionEnergy(pdihs,i)
+   end do
+
+   end subroutine calculateTorsionEnergies
+
+
+   subroutine updateTorsionEnergy(pdihs,ETTot,pdihID)
+   !
+   ! After the rotation to the axis defined by the atoms j and k of the dihedral
+   ! angle pdihs(pdihID)%currentAngle should be changed in the data set located
+   ! handled into the memory. This routine should be called afterwards to
+   ! calculate the torsion energy of the dihedral angle and update EETor.
+   !
+   type(pdih_t), dimension(:), intent(inout) :: pdihs
+   real(kind=real64), intent(inout) :: ETTot
+   integer(kind=int64), intent(in) :: pdihID
+
+   ETTot=ETTot-pdihs(pdihID)%energy
+
+   call calculateTorsionEnergy(pdihs,pdihID)
+
+   ETTot=ETTot+pdihs(pdihID)%energy
+
+   end subroutine updateTorsionEnergy
+
+
+   subroutine calculateTotalTorsionEnergy(pdihs,ETTot)
+   !
+   ! Calculates the sum of all torsion energies that are already calculated
+   ! by the subroutne calculateTorsionEnergies. This routine should be called
+   ! only once - before starting the real simultion. Later the subroutine
+   ! updateTorsionEnergy should be used in order to reduce the total
+   ! computational time.
+   !
+   type(pdih_t), dimension(:), intent(in) :: pdihs
+   real(kind=real64), intent(out) :: ETTot
+   integer(kind=int64) :: i
+
+   ETTot=0.0_real64
+
+   do i=1,pdihs_s
+      ETTot=ETTot+pdihs(i)%energy
+   end do
+
+   end subroutine calculateTotalTorsionEnergy
 
 
 end module mod_energy

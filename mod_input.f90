@@ -6,6 +6,7 @@ module mod_input
    use mod_t
    use mod_array
    use mod_dihedral
+   use mod_energy
 
 contains
 
