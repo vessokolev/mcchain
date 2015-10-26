@@ -1,14 +1,16 @@
 module mod_rot
 
    use mod_t
+   use mod_distance
 
    implicit none
 
 contains
 
-   subroutine rotateGroupOfAtoms(atoms,pdihs,atomIDArray,pdih,angle)
+   subroutine rotateGroupOfAtoms(atoms,pdihs,distM1D,atomIDArray,pdih,angle)
    type(atom_t), dimension(:), intent(inout) :: atoms
    type(pdih_t), dimension(:), intent(in) :: pdihs
+   real(kind=real64), dimension(:), intent(inout) :: distM1D
    integer(kind=int64), dimension(:), intent(in) :: atomIDArray
    type(pdih_t), intent(in) :: pdih
    real(kind=real64), intent(in) :: angle
@@ -34,6 +36,7 @@ contains
       atoms(atomIDArray(i))%x=tmp(1)
       atoms(atomIDArray(i))%y=tmp(2)
       atoms(atomIDArray(i))%z=tmp(3)
+      call updateDistanceMatrix1Atom(atoms,distM1D,i)
    end do
 
    call translateAtomCoords(atoms,-p1)
