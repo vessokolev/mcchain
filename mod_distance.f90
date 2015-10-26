@@ -25,7 +25,7 @@ contains
    integer(kind=int64) :: i
 
    do i=1,size(atomIDs,1)
-      call updateDistanceMatrix1(atoms,distM,atomIDs(i))
+      call updateDistanceMatrix1Atom(atoms,distM,atomIDs(i))
    end do
 
    end subroutine updateDistanceMatrix
@@ -82,7 +82,7 @@ contains
    ! counter is used bellow).
    !
    type(atom_t), dimension(:), intent(in) :: atoms
-   integer(kind=int64), dimension(:), allocatable, intent(inout) :: distM1D
+   real(kind=real64), dimension(:), allocatable, intent(inout) :: distM1D
    integer(kind=int64) :: i,j,counter
 
    allocate(distM1D(atoms_s*(atoms_s-1)/2))
