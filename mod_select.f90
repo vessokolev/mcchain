@@ -289,7 +289,7 @@ contains
    call getTreePaths(bonds,atomID,excludes,atomsInPath)
 
    do i=1,size(atomsInPath,1)
-      do j=2,4
+      do j=2,5 ! exclude neighbors
          if (flag) then
             if (atomsInPath(i,j) .gt. 0) then
                nonBondedExcl(1)=atomsInPath(i,j)
