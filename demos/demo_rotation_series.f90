@@ -15,8 +15,9 @@ program demo_rotation_series
    type(atom_t), dimension(:), allocatable :: atoms
    type(bond_t), dimension(:), allocatable :: bonds
    type(pdih_t), dimension(:), allocatable :: pdihs
-   real(kind=real64), dimension(:,:), allocatable :: eps_M
-   real(kind=real64), dimension(:,:), allocatable :: sigma_M
+   real(kind=real32), dimension(:,:), allocatable :: eps_M
+   real(kind=real32), dimension(:,:), allocatable :: sigma_M
+   real(kind=real32), dimension(:), allocatable :: distM1D
 
    integer(kind=int64), dimension(:), allocatable :: size_s
    integer(kind=int64), dimension(:,:), allocatable :: struct
@@ -24,23 +25,23 @@ program demo_rotation_series
    integer(kind=int16), dimension(1) :: seed=(/3232/)
    integer(kind=int64) :: i
    type(file_t) :: files
-   real(kind=real64) :: r, start, finish
+   real(kind=real32) :: r, start, finish
 
    !
    ! The files bellow are created by running create_input.py
    ! 
-   files%atoms="/home/vesso/Code/MC_dih/current/files/atoms.txt"
-   files%bonds="/home/vesso/Code/MC_dih/current/files/bonds.txt"
-   files%pdihsDefs="/home/vesso/Code/MC_dih/current/files/pdhdr.txt"
-   files%pdihsParams="/home/vesso/Code/MC_dih/current/files/pdhdr-params.txt"
+   files%atoms="../files/atoms.txt"
+   files%bonds="../files/bonds.txt"
+   files%pdihsDefs="../files/pdhdr.txt"
+   files%pdihsParams="../files/pdhdr-params.txt"
    !
    ! The file opt.pdb contains the initial coordinates of the atoms.
    ! Note that it is the same file that create_input.py reads in order
    ! to get the atomic coordinates.
    ! The file tmp.pdb conatins the result of the torsion angles changes.
    !
-   files%pdbinp="/home/vesso/Code/MC_dih/current/files/opt.pdb"
-   files%pdbout="/home/vesso/Code/MC_dih/current/files/tmp.pdb"
+   files%pdbinp="../files/opt.pdb"
+   files%pdbout="../files/tmp.pdb"
 
    !
    ! defined in mod_input.f90
@@ -51,6 +52,7 @@ program demo_rotation_series
    ! vdW parameters that later are used to calculate the energy.
    !
    call readInput(files,atoms,bonds,pdihs,eps_M,sigma_M)
+   call create1DdistM(atoms,distM1D)
 
    allocate(dihsOfInter(19))
 
@@ -61,7 +63,7 @@ program demo_rotation_series
    !
    dihsOfInter=(/21,44,69,94,119,144,169,194,219,244,269,294,319,344,369,394,419,444,469/)
    
-   call random_seed (PUT=seed)
+   call random_seed (seed(1))
 
    !
    ! defined in: mod_select.f90
@@ -84,7 +86,7 @@ program demo_rotation_series
       !
       ! Rotates a series of atomic coordinates over a given axis.
       !
-      call rotateGroupOfAtoms(atoms,pdihs,struct(i,1:size_s(i)),pdihs(dihsOfInter(i)),pix2*r)
+      call rotateGroupOfAtoms(atoms,pdihs,distM1D,struct(i,1:size_s(i)),pdihs(dihsOfInter(i)),pix2*r)
 
       call cpu_time(finish)
 

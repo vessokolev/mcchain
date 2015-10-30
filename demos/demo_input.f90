@@ -1,4 +1,4 @@
-program demo_rotation_series
+program demo_input
 
    use mod_t       ! Defines the base types
    use mod_pdb     ! Reads and write PDB files
@@ -16,8 +16,8 @@ program demo_rotation_series
 
    implicit none
 
-   real(kind=real64),parameter :: eps_r=1.0_real64
-   real(kind=real64),parameter :: f=138.935485_real64/eps_r
+   real(kind=real32),parameter :: eps_r=1.0_real32
+   real(kind=real32),parameter :: f=138.935485_real32/eps_r
 
    ! Note that the parameter used to handle the electrostatic
    ! interactions - f can be calculated as:
@@ -49,11 +49,11 @@ program demo_rotation_series
    type(atom_t), dimension(:), allocatable :: atoms,atoms_tmp
    type(bond_t), dimension(:), allocatable :: bonds
    type(pdih_t), dimension(:), allocatable :: pdihs,pdihs_tmp
-   real(kind=real64), dimension(:,:), allocatable :: eps_M
-   real(kind=real64), dimension(:,:), allocatable :: sigma_M
-   real(kind=real64), dimension(:), allocatable :: distM
+   real(kind=real32), dimension(:,:), allocatable :: eps_M
+   real(kind=real32), dimension(:,:), allocatable :: sigma_M
+   real(kind=real32), dimension(:), allocatable :: distM1D
 
-   integer(kind=int64), dimension(:), allocatable :: size_s,excludes,distM1D
+   integer(kind=int64), dimension(:), allocatable :: size_s,excludes
    integer(kind=int64), dimension(:,:), allocatable :: struct,connections,&
    atomsInPath,nonBondedExclusions
    integer(kind=int64), dimension(:), allocatable ::  dihsOfInter,numconns,&
@@ -61,23 +61,23 @@ program demo_rotation_series
    integer(kind=int16), dimension(1) :: seed=(/3232/)
    integer(kind=int64) :: i,j
    type(file_t) :: files
-   real(kind=real64) :: r, start, finish, ETTot
+   real(kind=real32) :: r, start, finish, ETTot
 
    !
    ! The files bellow are created by running create_input.py
    ! 
-   files%atoms="/home/vesso/Code/MC_dih/current/files/atoms.txt"
-   files%bonds="/home/vesso/Code/MC_dih/current/files/bonds.txt"
-   files%pdihsDefs="/home/vesso/Code/MC_dih/current/files/pdhdr.txt"
-   files%pdihsParams="/home/vesso/Code/MC_dih/current/files/pdhdr-params.txt"
+   files%atoms="../files/atoms.txt"
+   files%bonds="../files/bonds.txt"
+   files%pdihsDefs="../files/pdhdr.txt"
+   files%pdihsParams="../files/pdhdr-params.txt"
    !
    ! The file opt.pdb contains the initial coordinates of the atoms.
    ! Note that it is the same file that create_input.py reads in order
    ! to get the atomic coordinates.
    ! The file tmp.pdb conatins the result of the torsion angles changes.
    !
-   files%pdbinp="/home/vesso/Code/MC_dih/current/files/opt.pdb"
-   files%pdbout="/home/vesso/Code/MC_dih/current/files/tmp_1.pdb"
+   files%pdbinp="../files/opt.pdb"
+   files%pdbout="../files/tmp_1.pdb"
 
    !
    ! defined in mod_input.f90
@@ -90,7 +90,7 @@ program demo_rotation_series
 
    print *,"Processing the input data..."
    call readInput(files,atoms,bonds,pdihs,eps_M,sigma_M)
-   call createDistanceMatrix(atoms,distM)
+   call create1DdistM(atoms,distM1D)
    call getNonBondedExcl(atoms,bonds,nonBondedExclusions)
    call calculateTotalTorsionEnergy(pdihs,ETTot)
 
@@ -117,7 +117,8 @@ program demo_rotation_series
       !
       ! Rotates a series of atomic coordinates over a given axis.
       !
-      call rotateGroupOfAtoms(atoms,pdihs,struct(i,1:size_s(i)),pdihs(dihsOfInter(i)),pix2*r)
+      call rotateGroupOfAtoms(atoms,pdihs,distM1D,&
+                              struct(i,1:size_s(i)),pdihs(dihsOfInter(i)),pix2*r)
 
       call cpu_time(finish)
 
@@ -130,18 +131,18 @@ program demo_rotation_series
 
    print *,"Starting the computations..."
 
-   print *,"r=",norm2((/atoms(1)%x,atoms(1)%y,atoms(1)%z/)-&
+   print *,"r=",norm02((/atoms(1)%x,atoms(1)%y,atoms(1)%z/)-&
                  (/atoms(3)%x,atoms(3)%y,atoms(3)%z/))
 
-   print *,"sigma calc",0.5_real64*(atoms(1)%sigma+atoms(3)%sigma),&
+   print *,"sigma calc",0.5_real32*(atoms(1)%sigma+atoms(3)%sigma),&
            sigma_M(atoms(1)%sigma_g,atoms(3)%sigma_g)
-   print *,"eps   calc",sqrt(atoms(1)%eps*atoms(3)%eps)*4.0_real64,&
+   print *,"eps   calc",sqrt(atoms(1)%eps*atoms(3)%eps)*4.0_real32,&
            eps_M(atoms(1)%eps_g,atoms(3)%eps_g)
 
    print *,"charges :",atoms(1)%charge,atoms(3)%charge
 
-   print *,"vdW Energy :",getvdWPairEnergy(atoms,eps_M,sigma_M,distM,1,3)
-   print *,"Electrost E:",getElPairEnergy(atoms,distM,1,3)*f
+   print *,"vdW Energy :",getvdWPairEnergy(atoms,eps_M,sigma_M,distM1D,1_int64,3_int64)
+   print *,"Electrost E:",getElPairEnergy(atoms,distM1D,1_int64,3_int64)*f
    print *,"Total Torsion Energy",ETTot,"kJ/mol"
 
    print *,""
@@ -169,14 +170,6 @@ program demo_rotation_series
 
    print *,atoms(95)%atype,atoms(101)%atype
 
-   call create1DdistM(atoms,distM1D)
-
-!   call createDistanceMatrix(atoms,distM)
-
-!   call updateDistanceMatrix(atoms,distM,(/2/))
-
-!   call saveAtomsOnPDB(atoms,files%pdbinp,files%pdbout)
-
    deallocate(size_s)
    deallocate(struct)
    deallocate(dihsOfInter)
@@ -187,4 +180,4 @@ program demo_rotation_series
    deallocate(bonds)
    deallocate(pdihs)
 
-end program demo_rotation_series
+end
