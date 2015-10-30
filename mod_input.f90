@@ -16,8 +16,8 @@ contains
    type(atom_t), dimension(:), allocatable, intent(out) :: atoms
    type(bond_t), dimension(:), allocatable, intent(out) :: bonds
    type(pdih_t), dimension(:), allocatable, intent(out) :: pdihs
-   real(kind=real64), dimension(:,:), allocatable :: eps_M
-   real(kind=real64), dimension(:,:), allocatable :: sigma_M
+   real(kind=real32), dimension(:,:), allocatable :: eps_M
+   real(kind=real32), dimension(:,:), allocatable :: sigma_M
 
    call readAtoms(files,atoms)
 
@@ -156,8 +156,8 @@ contains
 
    subroutine putAtomsInEpsGroups(atoms,eps_M)
    type(atom_t), dimension(:), intent(inout) :: atoms
-   real(kind=real64), dimension(:,:), allocatable, intent(out) :: eps_M
-   real(kind=real64), dimension(:), allocatable :: u_eps
+   real(kind=real32), dimension(:,:), allocatable, intent(out) :: eps_M
+   real(kind=real32), dimension(:), allocatable :: u_eps
    integer(kind=int64), dimension(1) :: atoms_s
    integer(kind=int64) :: i
 
@@ -182,9 +182,9 @@ contains
 
    subroutine putAtomsInSigmaGroups(atoms,sigma_M)
    type(atom_t), dimension(:), intent(inout) :: atoms
-   real(kind=real64), dimension(:,:), allocatable, intent(out) :: &
+   real(kind=real32), dimension(:,:), allocatable, intent(out) :: &
    sigma_M
-   real(kind=real64), dimension(:), allocatable :: u_sgm
+   real(kind=real32), dimension(:), allocatable :: u_sgm
    integer(kind=int64), dimension(1) :: atoms_s
    integer(kind=int64) :: i
 
@@ -208,8 +208,8 @@ contains
 
 
    subroutine constructEpsMatrix(u_eps,eps_M)
-   real(kind=real64), dimension(:), intent(in) :: u_eps
-   real(kind=real64), dimension(:,:), allocatable, intent(out) :: eps_M
+   real(kind=real32), dimension(:), intent(in) :: u_eps
+   real(kind=real32), dimension(:,:), allocatable, intent(out) :: eps_M
    integer(kind=int64), dimension(1) :: u_eps_s
    integer(kind=int64) :: i,j
 
@@ -222,9 +222,9 @@ contains
    ! V(i,j)=4.0*epsilon(i,j)*((sigma(i,j)/r(i,j))**12-(sigma(i,j)/r(i,j))**6)
 
    do i=1,u_eps_s(1)
-      eps_M(i,i)=4.0_real64*u_eps(i)
+      eps_M(i,i)=4.0_real32*u_eps(i)
       do j=i+1,u_eps_s(1)
-         eps_M(i,j)=4.0_real64*sqrt(u_eps(i)*u_eps(j))
+         eps_M(i,j)=4.0_real32*sqrt(u_eps(i)*u_eps(j))
          eps_M(j,i)=eps_M(i,j)
       end do
    end do
@@ -233,8 +233,8 @@ contains
 
 
    subroutine constructSigmaMatrix(u_sgm,sigma_M)
-   real(kind=real64), dimension(:), intent(in) :: u_sgm
-   real(kind=real64), dimension(:,:), allocatable, intent(out) :: &
+   real(kind=real32), dimension(:), intent(in) :: u_sgm
+   real(kind=real32), dimension(:,:), allocatable, intent(out) :: &
    sigma_M
    integer(kind=int64), dimension(1) :: u_sgm_s
    integer(kind=int64) :: i,j
@@ -246,7 +246,7 @@ contains
    do i=1,u_sgm_s(1)
       sigma_M(i,i)=u_sgm(i)
       do j=i+1,u_sgm_s(1)
-         sigma_M(i,j)=0.5_real64*(u_sgm(i)+u_sgm(j))
+         sigma_M(i,j)=0.5_real32*(u_sgm(i)+u_sgm(j))
          sigma_M(j,i)=sigma_M(i,j)
       end do
    end do
@@ -269,7 +269,7 @@ contains
    ! columns, or diagonal elements) - equal to the total number of the atoms.
    !
    type(atom_t), dimension(:), intent(in) :: atoms
-   real(kind=real64), dimension(:), allocatable, intent(out) :: distM
+   real(kind=real32), dimension(:), allocatable, intent(out) :: distM
    integer(kind=int64) :: i,j,counter
 
    allocate(distM(atoms_s*(atoms_s-1)/2))
@@ -278,7 +278,7 @@ contains
 
    do i=1,atoms_s-1
       do j=i+1,atoms_s
-            distM(counter)=norm2((/atoms(i)%x,atoms(i)%y,atoms(i)%z/)-&
+            distM(counter)=norm02((/atoms(i)%x,atoms(i)%y,atoms(i)%z/)-&
                                  (/atoms(j)%x,atoms(j)%y,atoms(j)%z/))
          counter=counter+1
       end do

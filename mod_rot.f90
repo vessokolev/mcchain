@@ -1,6 +1,8 @@
 module mod_rot
-
+   ! Created by Vesselin Kolev <vesso.kolev@gmail.com>
+   ! 20151008231902
    use mod_t
+   use mod_array
    use mod_distance
 
    implicit none
@@ -8,15 +10,24 @@ module mod_rot
 contains
 
    subroutine rotateGroupOfAtoms(atoms,pdihs,distM1D,atomIDArray,pdih,angle)
+   !
+   ! This subroutine rotates a group of atoms with respect to a given axis
+   ! (the axis is defined by using the j and k atoms of a certain dihedral
+   ! angle) by implementing Rodrigues' formula.
+   !
+   ! Here atomIDArray supplies the indexes of the atoms that have to be rotated.
+   ! The angle (angle) is given in radians (not in degrees!!!). After each
+   ! rotation the subroutine updates the distance matrix distM1D.
+   !
    type(atom_t), dimension(:), intent(inout) :: atoms
    type(pdih_t), dimension(:), intent(in) :: pdihs
-   real(kind=real64), dimension(:), intent(inout) :: distM1D
+   real(kind=real32), dimension(:), intent(inout) :: distM1D
    integer(kind=int64), dimension(:), intent(in) :: atomIDArray
    type(pdih_t), intent(in) :: pdih
-   real(kind=real64), intent(in) :: angle
+   real(kind=real32), intent(in) :: angle
    integer(kind=int64) :: i
-   real(kind=real64), dimension(3,3) :: rotMatrix
-   real(kind=real64), dimension(3) :: tmp,p1,p2
+   real(kind=real32), dimension(3,3) :: rotMatrix
+   real(kind=real32), dimension(3) :: tmp,p1,p2
 
    p1(1)=atoms(pdih%member_id(2))%x
    p1(2)=atoms(pdih%member_id(2))%y
@@ -45,8 +56,13 @@ contains
 
 
    subroutine translateAtomCoords(atoms,transVector)
+   !
+   ! This subroutine translates the atomic coordinates with respect to
+   ! a point given by transVector. Note that the subroutine translates
+   ! ALL atomic coordinates (the coordinates of all atoms in the set).
+   !
    type(atom_t), dimension(:), intent(inout) :: atoms
-   real(kind=real64), dimension(3), intent(in) :: transVector
+   real(kind=real32), dimension(3), intent(in) :: transVector
    integer(kind=int64) :: i
    
    do i=1,size(atoms,1)
@@ -59,14 +75,19 @@ contains
 
 
    function getRotMatrix(point1,point2,angle) result(matrix)
-   real(kind=real64), dimension(3), intent(in) :: point1,point2
-   real(kind=real64), intent(in) :: angle
-   real(kind=real64), dimension(3,3) :: matrix
-   real(kind=real64), dimension(3) :: norm
-   real(kind=real64) :: cos_,sin_,omcos_,n12,n13,n23
+   !
+   ! Calculates the rotation matrix elements that allows the application of the
+   ! Rodrigues' formula. For more details see:
+   ! https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+   !
+   real(kind=real32), dimension(3), intent(in) :: point1,point2
+   real(kind=real32), intent(in) :: angle
+   real(kind=real32), dimension(3,3) :: matrix
+   real(kind=real32), dimension(3) :: norm
+   real(kind=real32) :: cos_,sin_,omcos_,n12,n13,n23
 
    norm=(/point2(1)-point1(1),point2(2)-point1(2),point2(3)-point1(3)/)
-   norm(:)=norm(:)/norm2(norm)
+   norm(:)=norm(:)/norm02(norm)
 
    cos_=cos(angle)
    sin_=sin(angle)
@@ -92,9 +113,14 @@ contains
 
 
    function rotatePoint(point,rotMatrix) result(rotated)
-   real(kind=real64), dimension(3), intent(in) :: point
-   real(kind=real64), dimension(3,3), intent(in) :: rotMatrix
-   real(kind=real64), dimension(3) :: rotated
+   !
+   ! Rotates the coordinates of a point in 3D space by implementing the
+   ! Rodrugues' formula. The rotation matrix is supplied by the subroutine
+   ! getRotMatrix.
+   !
+   real(kind=real32), dimension(3), intent(in) :: point
+   real(kind=real32), dimension(3,3), intent(in) :: rotMatrix
+   real(kind=real32), dimension(3) :: rotated
    integer :: i,j
 
    do i=1,3
@@ -105,49 +131,5 @@ contains
    end do
 
    end function rotatePoint
-
-
-   function translatePoint(point,bench) result(translated)
-   real(kind=real64), dimension(3), intent(in) :: point,bench
-   real(kind=real64), dimension(3) :: translated
-
-   translated(:)=point(:)-bench(:)
-
-   end function
-
-
-   function inv(A) result(Ainv)
-   real(kind=real64), dimension(:,:), intent(in) :: A
-   real(kind=real64), dimension(size(A,1),size(A,2)) :: Ainv
-
-   real(kind=real64), dimension(size(A,1)) :: work  ! work array for LAPACK
-   integer, dimension(size(A,1)) :: ipiv   ! pivot indices
-   integer(kind=int8) :: n, info
-
-   ! External procedures defined in LAPACK
-   external DGETRF
-   external DGETRI
-
-   ! Store A in Ainv to prevent it from being overwritten by LAPACK
-   Ainv = A
-   n = size(A,1)
-
-   ! DGETRF computes an LU factorization of a general M-by-N matrix A
-   ! using partial pivoting with row interchanges.
-   call DGETRF(n, n, Ainv, n, ipiv, info)
-
-   if (info /= 0) then
-      stop 'Matrix is numerically singular!'
-   end if
-
-   ! DGETRI computes the inverse of a matrix using the LU factorization
-   ! computed by DGETRF.
-   call DGETRI(n, Ainv, n, ipiv, work, n, info)
-
-   if (info /= 0) then
-      stop 'Matrix inversion failed!'
-   end if
-   end function inv
-
 
 end module mod_rot

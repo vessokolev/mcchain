@@ -1,5 +1,8 @@
 module mod_array
-
+   !
+   ! Created by Vesselin Kolev <vesso.kolev@gmail.com>
+   ! 20151010095207
+   !
    use mod_t
 
    implicit none
@@ -59,8 +62,8 @@ contains
 
 
    function vectorCrossProduct(vect1,vect2) result(crossprod)
-   real(kind=real64), dimension(3), intent(in) :: vect1,vect2
-   real(kind=real64), dimension(3) :: crossprod
+   real(kind=real32), dimension(3), intent(in) :: vect1,vect2
+   real(kind=real32), dimension(3) :: crossprod
 
    crossprod(1)=vect1(2)*vect2(3)-vect1(3)*vect2(2)
    crossprod(2)=vect1(3)*vect2(1)-vect1(1)*vect2(3)
@@ -157,8 +160,8 @@ contains
 
 
    function searchIn1DFloatArray(array,numToSearchFor) result(found)
-   real(kind=real64), dimension(:), intent(in) :: array
-   real(kind=real64), intent(in) :: numToSearchFor
+   real(kind=real32), dimension(:), intent(in) :: array
+   real(kind=real32), intent(in) :: numToSearchFor
    logical :: flag
    integer(kind=int64) :: found,dummy,array_s
 
@@ -184,9 +187,9 @@ contains
 
 
    subroutine extend1DFloatArray(array,newElement)
-   real(kind=real64), dimension(:), allocatable, intent(inout) :: array
-   real(kind=real64), intent(in) :: newElement
-   real(kind=real64), dimension(:), allocatable :: temp
+   real(kind=real32), dimension(:), allocatable, intent(inout) :: array
+   real(kind=real32), intent(in) :: newElement
+   real(kind=real32), dimension(:), allocatable :: temp
    integer(kind=int64) :: i,array_s
 
    array_s=size(array,1)
@@ -207,11 +210,11 @@ contains
 
 
    subroutine findUniqueElements1Darray(array)
-   real(kind=real64), dimension(:), allocatable, intent(inout) :: array
-   real(kind=real64), dimension(:), allocatable :: tmp
+   real(kind=real32), dimension(:), allocatable, intent(inout) :: array
+   real(kind=real32), dimension(:), allocatable :: tmp
    integer(kind=int64),dimension(1) :: array_s
    integer(kind=int64) :: i,counter,dummy_i
-   real(kind=real64) :: dummy
+   real(kind=real32) :: dummy
 
    array_s=shape(array)
    array_s=array_s-1
@@ -244,6 +247,40 @@ contains
    call move_alloc(tmp,array)
 
    end subroutine findUniqueElements1Darray
+
+
+   function norm02(vector) result(norm)
+   real(kind=real32), dimension(3), intent(in) :: vector
+   real(kind=real32) :: norm
+   integer(kind=int8) :: i
+
+   norm=0.0_real32
+
+   do i=1,3
+      norm=norm+vector(i)*vector(i)
+   end do
+
+   norm=sqrt(norm)
+
+   end function norm02
+
+
+   function computeRMSD(atoms1,atoms2) result(rmsd)
+   type(atom_t), dimension(:), intent(in) :: atoms1
+   type(atom_t), dimension(:), intent(in) :: atoms2
+   real(kind=real32) :: rmsd
+   integer(kind=int64) :: i
+
+   rmsd=0.0_real64
+
+   do i=1,atoms_s
+      rmsd=rmsd+norm02((/atoms1(i)%x,atoms1(i)%y,atoms1(i)%z/)-&
+                      (/atoms2(i)%x,atoms2(i)%y,atoms2(i)%z/))
+   end do
+
+   rmsd=sqrt(rmsd/atoms_s)
+
+   end function computeRMSD
 
 
 end module mod_array

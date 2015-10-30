@@ -1,5 +1,8 @@
 module mod_pdb
-
+   !
+   ! Created by Veselin Kolev <vesso.kolev@gmail.com>
+   ! 20151013071325
+   !
    use mod_t
 
    character(len=26) :: cryst1fmt="(A6,3F9.3,3F7.2,1X,A11,I4)"
@@ -23,9 +26,9 @@ contains
       pdbatoms(i)%z=atoms(i)%z
    end do
 
-   pdbatoms(:)%x=pdbatoms(:)%x*10.0_real64
-   pdbatoms(:)%y=pdbatoms(:)%y*10.0_real64
-   pdbatoms(:)%z=pdbatoms(:)%z*10.0_real64
+   pdbatoms(:)%x=pdbatoms(:)%x*10.0_real32
+   pdbatoms(:)%y=pdbatoms(:)%y*10.0_real32
+   pdbatoms(:)%z=pdbatoms(:)%z*10.0_real32
 
    call pdbwrite(outputfile,pdbcryst1,pdbatoms)
 

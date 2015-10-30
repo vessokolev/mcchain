@@ -2,6 +2,7 @@ module mod_distance
    ! Created by Veselin Kolev <vesso.kolev@gmail.com>
    ! 20151020031723
    use mod_t
+   use mod_array
 
    implicit none
    !
@@ -20,7 +21,7 @@ contains
    ! complex atomic coordinate changes (like rotation over axis).
    !
    type(atom_t), dimension(:), intent(in) :: atoms
-   real(kind=real64), dimension(:), intent(inout) :: distM
+   real(kind=real32), dimension(:), intent(inout) :: distM
    integer(kind=int64), dimension(:), intent(in) :: atomIDs
    integer(kind=int64) :: i
 
@@ -39,7 +40,7 @@ contains
    ! representation of the distance matrix.
    !
    type(atom_t), dimension(:), intent(in) :: atoms
-   real(kind=real64), dimension(:), intent(inout) :: distM1D
+   real(kind=real32), dimension(:), intent(inout) :: distM1D
    integer(kind=int64), intent(in) :: atomID
    integer(kind=int64) :: j,k
 
@@ -47,12 +48,12 @@ contains
       if (j .eq. atomID) then
          do k=atomID+1,atoms_s
             distM1D(get1DdimMIndex(atomID,k))=&
-            norm2((/atoms(atomID)%x,atoms(atomID)%y,atoms(atomID)%z/)-&
+            norm02((/atoms(atomID)%x,atoms(atomID)%y,atoms(atomID)%z/)-&
                   (/atoms(k)%x,atoms(k)%y,atoms(k)%z/))
          end do
       else
          distM1D(get1DdimMIndex(j,atomID))=&
-         norm2((/atoms(j)%x,atoms(j)%y,atoms(j)%z/)-&
+         norm02((/atoms(j)%x,atoms(j)%y,atoms(j)%z/)-&
                (/atoms(atomID)%x,atoms(atomID)%y,atoms(atomID)%z/))
       end if
    end do
@@ -82,7 +83,7 @@ contains
    ! counter is used bellow).
    !
    type(atom_t), dimension(:), intent(in) :: atoms
-   real(kind=real64), dimension(:), allocatable, intent(inout) :: distM1D
+   real(kind=real32), dimension(:), allocatable, intent(inout) :: distM1D
    integer(kind=int64) :: i,j,counter
 
    allocate(distM1D(atoms_s*(atoms_s-1)/2))
@@ -92,7 +93,7 @@ contains
    do i=1,atoms_s-1
       do j=i+1,atoms_s
          distM1D(counter)=&
-         norm2((/atoms(i)%x,atoms(i)%y,atoms(i)%z/)-&
+         norm02((/atoms(i)%x,atoms(i)%y,atoms(i)%z/)-&
                (/atoms(j)%x,atoms(j)%y,atoms(j)%z/))
          counter=counter+1
       end do
